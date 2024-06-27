@@ -21,6 +21,7 @@ int SCREEN_HEIGHT = 600;
 
 // Functions
 int GetCurrentSection();
+void UpdateSectionInstalled();
 
 // Drawing 
 void DrawSectionExplore();
@@ -28,7 +29,7 @@ void DrawSectionInstalled();
 void DrawSectionUpdates();
 
 void DrawSearchBar();
-void DrawList(char** results, int num_results, char* split, Vector2 mouses, Font font);
+void DrawList(char** results, int num_results, char** installed, int num_installed, char* split, Vector2 mouses, Font font);
 
 int main(int argc, char *argv[]) 
 {
@@ -37,15 +38,10 @@ int main(int argc, char *argv[])
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "COLPAK");
     init();
 
-    //TODO: Create a hasmap of all the packages:
-    //      List packages from the hasmap, automatically
-    //      fetching the version, repo and wheter it's
-    //      installed.
-
     //TODO: Implement the installation of packages:
     //      package page, console output, etc..
         
-    SetWindowMinSize(800, 600);
+    SetWindowMinSize(SCREEN_WIDTH, SCREEN_HEIGHT);
     SetTargetFPS(60);
 
     Color bg = {23, 23, 23, 255};
@@ -55,7 +51,11 @@ int main(int argc, char *argv[])
     Font mono = LoadFontEx("resources/FreeMonoBold.ttf", 32, 0, 250);
 
     char** results = NULL;
+    char** installed = NULL;
     int num_results = 0;
+    int num_installed = 0;
+    
+    UpdateSectionInstalled(&installed, &num_installed);
 
     char* search_term = calloc(MAX_INPUT, 1);
     sprintf(search_term, "Search for...");
@@ -79,15 +79,16 @@ int main(int argc, char *argv[])
                 search_term = calloc(MAX_INPUT, 1);
                 sprintf(search_term, "Search for...");
                 search_size = 0;
+                UpdateSectionInstalled(&installed, &num_installed);
             }
             
             switch(section)
             {
                 case SECTION_EXPLORE:
-                    DrawSectionExplore(&results, &num_results, search_term, &search_size, mouse, mono);
+                    DrawSectionExplore(&results, &num_results, &installed, &num_installed, search_term, &search_size, mouse, mono);
                     break;
                 case SECTION_INSTALLED: 
-                    DrawSectionInstalled(search_term, &search_size, mouse, mono);
+                    DrawSectionInstalled(&installed, &num_installed, search_term, &search_size, mouse, mono);
                     break;
                 case SECTION_UPDATES:
                     DrawSectionUpdates(search_term, &search_size, mouse, mono);
@@ -107,9 +108,9 @@ int GetCurrentSection(int section, Vector2 mouse, Font font)
 {
     Color fg = {23, 23, 23, 255};
 
-    Rectangle explore = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_EXPLORE), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
-    Rectangle installed = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_INSTALLED), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
-    Rectangle updates = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_UPDATES), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
+    Rectangle explore = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_EXPLORE - 38.0f), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
+    Rectangle installed = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_INSTALLED), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
+    Rectangle updates = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_UPDATES + 38.0f), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
 
     DrawRectangleRounded(explore, 0.5, 3, fg);
         DrawTextEx(font, "Explore", (Vector2){explore.x + explore.width/2.0f - strlen("Explore")*20/4.0f, explore.y + explore.height/2.0f - 8}, 16, 1, RAYWHITE);
@@ -142,7 +143,7 @@ int GetCurrentSection(int section, Vector2 mouse, Font font)
     return section;
 }
 
-void DrawSectionExplore(char*** results, int* num_results, char* search_term, int* search_size, Vector2 mouse, Font font)
+void DrawSectionExplore(char*** results, int* num_results, char*** installed, int* num_installed, char* search_term, int* search_size, Vector2 mouse, Font font)
 {   
     char* temp_term = strdup(search_term);
 
@@ -154,48 +155,43 @@ void DrawSectionExplore(char*** results, int* num_results, char* search_term, in
         {
             for(int i = 0; i < *num_results; i++)
             {
-                printf("HERE '%s' '%d'  '%d' \n", (*results)[i], i, *num_results);
+                //printf("HERE '%s' '%d'  '%d' \n", (*results)[i], i, *num_results);
                 free((*results)[i]);
-                printf("NOW HERE \n");
             }
             free(*results);
             *results = NULL;
             *num_results = 0;
         }
-        printf("ESCAPED \n");
+        //printf("Searching \n");
         *results = search(search_term, num_results);
     }
     
     free(temp_term);
 
     Color fg = {43, 43, 43, 255};
-    Rectangle explore = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_EXPLORE), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
+    Rectangle explore = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_EXPLORE - 38.0f), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
 
     DrawRectangleRounded(explore, 0.5, 3, fg);
         DrawTextEx(font, "Explore", (Vector2){explore.x + explore.width/2.0f - strlen("Explore")*20/4.0f, explore.y + explore.height/2.0f - 8}, 16, 1, RAYWHITE);
 
-    DrawList(*results, *num_results, ">", mouse, font);
+    DrawList(*results, *num_results, *installed, *num_installed, ">", mouse, font);
 }
 
-void DrawSectionInstalled(char* search_term, int* search_size,  Vector2 mouse, Font font)
+void DrawSectionInstalled(char*** results, int* num_results, char* search_term, int* search_size,  Vector2 mouse, Font font)
 {
-    int num;
-    char** results = getAllFiles(getenv("SOVIET_SPM_DIR"), getenv("SOVIET_SPM_DIR"), &num);
-
     Color fg = {43, 43, 43, 255};
-    Rectangle installed = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_INSTALLED), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
+    Rectangle installed = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_INSTALLED), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
 
     DrawRectangleRounded(installed, 0.5, 3, fg);
         DrawTextEx(font, "Installed", (Vector2){installed.x + installed.width/2.0f  - strlen("Installed")*20/4.0f, installed.y + installed.height/2.0f - 8}, 16, 1, RAYWHITE);
            
-    DrawList(results, num, "/", mouse, font); 
-    free(results);
+    DrawList(*results, *num_results, *results, *num_results,  "/", mouse, font); 
 }
 
 void DrawSectionUpdates(char* search_term, int* search_size,  Vector2 mouse, Font font)
 {
     Color fg = {43, 43, 43, 255};
-    Rectangle updates = {(SCREEN_WIDTH/2.0f - (SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f * 3)) + ((SCREEN_WIDTH/8.0f + SCREEN_WIDTH/32.0f) * SECTION_UPDATES), SCREEN_HEIGHT/32.0f, SCREEN_WIDTH/8.0f,  SCREEN_HEIGHT/16.0f};
+    Rectangle updates = {(SCREEN_WIDTH/2.0f - (100 * 3/2.0f)) + (100 * SECTION_UPDATES + 38.0f), SCREEN_HEIGHT/32.0f, 100.0f,  38.0f};
     
     DrawRectangleRounded(updates, 0.5, 3, fg);
         DrawTextEx(font, "Updates", (Vector2){updates.x + updates.width/2.0f - strlen("Updates")*20/4.0f, updates.y + updates.height/2.0f - 8}, 16, 1, RAYWHITE);
@@ -204,7 +200,7 @@ void DrawSectionUpdates(char* search_term, int* search_size,  Vector2 mouse, Fon
 void DrawSearchBar(char* search_term, int* search_size, Vector2 mouse, Font font)
 {
     Color fg = {43, 43, 43, 255};
-    Rectangle search = {SCREEN_WIDTH/2.0f - SCREEN_WIDTH/3.0f, SCREEN_HEIGHT/32.0f + SCREEN_HEIGHT/10.0f, SCREEN_WIDTH/2.0f + SCREEN_WIDTH/6.0f,  SCREEN_HEIGHT/16.0f};
+    Rectangle search = {SCREEN_WIDTH/2.0f - SCREEN_WIDTH/3.0f, SCREEN_HEIGHT/32.0f + SCREEN_HEIGHT/10.0f, SCREEN_WIDTH/2.0f + SCREEN_WIDTH/6.0f, 32.0f};
 
     if(CheckCollisionPointRec(mouse, search))
     {
@@ -246,10 +242,10 @@ void DrawSearchBar(char* search_term, int* search_size, Vector2 mouse, Font font
         }
 
     DrawRectangleRoundedLinesEx(search, 0.5, 3, 3, fg);
-    DrawTextEx(font, search_term, (Vector2){search.x + 20.0f, search.y + search.height/2.0f - 8}, 16, 1, RAYWHITE);
+        DrawTextEx(font, search_term, (Vector2){search.x + 20.0f, search.y + search.height/2.0f - 8}, 16, 1, RAYWHITE);
 }
 
-void DrawList(char** results, int num_results, char* split, Vector2 mouses, Font font)
+void DrawList(char** results, int num_results, char** installed, int num_installed, char* split, Vector2 mouse, Font font)
 {
     if(results != NULL)
     {
@@ -258,38 +254,76 @@ void DrawList(char** results, int num_results, char* split, Vector2 mouses, Font
         {
             char* temp = strdup(results[i]);
             Color fg = {43, 43, 43, 255};
-
-
+            Color bg = {23, 23, 23, 255};
 
             char* repo = strtok(temp, split);
-
             char* pkg = strchr(temp, '\0') + 1;
-            char* temp_pkg = strdup(pkg);
             
-            if(strlen(temp_pkg) > 16)
-            {
-                temp_pkg = realloc(temp_pkg, 18);
-                temp_pkg[16] = '\0';
-                sprintf(temp_pkg, "%s...", temp_pkg);
-            }
-            
-            if(strcmp(repo, ".git") != 0)
+            if(strstr(pkg, ".ecmp"))
             {
                 j++;
-                Rectangle result = {SCREEN_WIDTH/2.0f - SCREEN_WIDTH/3.0f, SCREEN_HEIGHT/4.0f + (34.0f*j), SCREEN_WIDTH/2.0f + SCREEN_WIDTH/6.0f, 32.0f};
+
+                char* display_name = strdup(pkg);
+                display_name[strlen(display_name) - 5] = '\0';
+                
+                if(strlen(display_name) > 16)
+                {
+                    display_name = realloc(display_name, 18);
+                    display_name[16] = '\0';
+                    sprintf(display_name, "%s...", display_name);
+                }
+
+                Rectangle result = {SCREEN_WIDTH/2.0f - SCREEN_WIDTH/3.0f, SCREEN_HEIGHT/6.0f + (58.0f*j), SCREEN_WIDTH/2.0f + SCREEN_WIDTH/6.0f, 56.0f};
+                Rectangle button = {result.x + result.width - 120.0f, result.y + result.height/2.0f - 16.0f, 100.0f, 32.0f};
+
                 DrawRectangleRounded(result, 0.5, 3, fg);
-                DrawTextEx(font, temp_pkg, (Vector2){result.x + 40.0f, result.y + result.height/2.0f - 8}, 16, 1, RAYWHITE);
-                DrawTextEx(font, repo, (Vector2){result.x + result.width - 180.0f, result.y + result.height/2.0f - 8}, 16, 1, RAYWHITE);
+                    DrawTextEx(font, display_name, (Vector2){result.x + 40.0f, result.y + result.height/2.0f - 8}, 16, 1, RAYWHITE);
+                    DrawTextEx(font, repo, (Vector2){result.x + result.width - 200.0f, result.y + result.height/2.0f - 8}, 16, 1, RAYWHITE);
+
+                DrawRectangleRoundedLinesEx(button, 0.5, 3, 3, bg);
+                if(CheckCollisionPointRec(mouse, button))
+                {
+                    DrawRectangleRounded(button, 0.5, 3, bg);
+                }
+
+                int i_installed = 0;
+
+                for(int k = 0; k < num_installed; k++)
+                {
+                    char* i_temp = strdup(installed[k]);
+
+                    char* i_repo = strtok(i_temp, "/");
+                    char* i_pkg = strchr(i_temp, '\0') + 1;
+
+                    if(strcmp(pkg, i_pkg) == 0)
+                    {
+                        i_installed = 1;
+                        break;
+                    }
+                }
+
+                if(i_installed == 0)
+                {
+                    DrawTextEx(font, "Install", (Vector2){button.x + button.width/2.0f - strlen("Install")*18/4.0f, button.y + button.height/2.0f - 7}, 14, 1, RAYWHITE);
+                }
+                    else
+                    {
+                        DrawTextEx(font, "Uninstall", (Vector2){button.x + button.width/2.0f - strlen("Uninstall")*18/4.0f, button.y + button.height/2.0f - 7}, 14, 1, RAYWHITE);
+                    }
+
+                free(display_name);
             }
-            free(temp_pkg);
+
             free(temp);
         }
     }
 }
 
-
-
-
+void UpdateSectionInstalled(char*** results, int* num_results)
+{
+    free(*results);
+    *results = getAllFiles(getenv("SOVIET_SPM_DIR"), getenv("SOVIET_SPM_DIR"), num_results);
+}
 
 
 
